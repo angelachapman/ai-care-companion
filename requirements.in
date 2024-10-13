@@ -1,0 +1,14 @@
+chainlit
+python-dotenv
+firecrawl-py
+lxml
+html2text
+bs4
+tqdm
+asyncio
+langchain
+langchain-community
+langchain-core
+langchain-qdrant
+qdrant-client
+requests
