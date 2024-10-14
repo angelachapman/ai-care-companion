@@ -1,6 +1,10 @@
+anthropic
+langchain-anthropic
+openai
+langchain-openai
+pymupdf
 chainlit
 python-dotenv
-firecrawl-py
 lxml
 html2text
 bs4

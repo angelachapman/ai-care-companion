@@ -1,6 +1,8 @@
 care-companion-env
 .DS_Store
 source_documents.json
+downloaded_document.pdf
+.env
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
