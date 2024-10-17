@@ -4,86 +4,113 @@
 #
 #    pip-compile requirements.in
 #
+aiofiles==23.2.1
+    # via chainlit
 aiohappyeyeballs==2.4.3
     # via aiohttp
 aiohttp==3.10.10
-    # via
-    #   langchain
-    #   langchain-community
+    # via langchain
 aiosignal==1.3.1
     # via aiohttp
 annotated-types==0.7.0
     # via pydantic
-anthropic==0.36.0
+anthropic==0.36.2
     # via
     #   -r requirements.in
     #   langchain-anthropic
-anyio==4.6.0
+anyio==4.6.2.post1
     # via
     #   anthropic
+    #   asyncer
     #   httpx
     #   openai
+    #   starlette
+    #   watchfiles
 async-timeout==4.0.3
     # via
     #   aiohttp
     #   langchain
+asyncer==0.0.7
+    # via chainlit
 asyncio==3.4.3
     # via -r requirements.in
 attrs==24.2.0
     # via aiohttp
-beautifulsoup4==4.12.3
-    # via bs4
-bs4==0.0.2
-    # via -r requirements.in
+bidict==0.23.1
+    # via python-socketio
 certifi==2024.8.30
     # via
     #   httpcore
     #   httpx
     #   requests
-chainlit==0.1.0
+chainlit==1.2.0
     # via -r requirements.in
 charset-normalizer==3.4.0
     # via requests
+chevron==0.14.0
+    # via literalai
+click==8.1.7
+    # via
+    #   chainlit
+    #   uvicorn
 dataclasses-json==0.6.7
-    # via langchain-community
+    # via chainlit
 defusedxml==0.7.1
     # via langchain-anthropic
+deprecated==1.2.14
+    # via
+    #   opentelemetry-api
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-exporter-otlp-proto-http
+    #   opentelemetry-semantic-conventions
 distro==1.9.0
     # via
     #   anthropic
     #   openai
 exceptiongroup==1.2.2
     # via anyio
+fastapi==0.112.4
+    # via chainlit
 filelock==3.16.1
     # via huggingface-hub
+filetype==1.2.0
+    # via chainlit
 frozenlist==1.4.1
     # via
     #   aiohttp
     #   aiosignal
 fsspec==2024.9.0
     # via huggingface-hub
+googleapis-common-protos==1.65.0
+    # via
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-exporter-otlp-proto-http
 greenlet==3.1.1
     # via sqlalchemy
-grpcio==1.66.2
+grpcio==1.67.0
     # via
     #   grpcio-tools
+    #   opentelemetry-exporter-otlp-proto-grpc
     #   qdrant-client
-grpcio-tools==1.66.2
+grpcio-tools==1.62.3
     # via qdrant-client
 h11==0.14.0
-    # via httpcore
+    # via
+    #   httpcore
+    #   uvicorn
+    #   wsproto
 h2==4.1.0
     # via httpx
 hpack==4.0.0
     # via h2
-html2text==2024.2.26
-    # via -r requirements.in
 httpcore==1.0.6
     # via httpx
 httpx[http2]==0.27.2
     # via
     #   anthropic
+    #   chainlit
     #   langsmith
+    #   literalai
     #   openai
     #   qdrant-client
 huggingface-hub==0.25.2
@@ -96,6 +123,8 @@ idna==3.10
     #   httpx
     #   requests
     #   yarl
+importlib-metadata==8.4.0
+    # via opentelemetry-api
 jiter==0.6.1
     # via
     #   anthropic
@@ -105,19 +134,14 @@ jsonpatch==1.33
 jsonpointer==3.0.0
     # via jsonpatch
 langchain==0.3.3
-    # via
-    #   -r requirements.in
-    #   langchain-community
+    # via -r requirements.in
 langchain-anthropic==0.2.3
     # via -r requirements.in
-langchain-community==0.3.2
-    # via -r requirements.in
-langchain-core==0.3.10
+langchain-core==0.3.12
     # via
     #   -r requirements.in
     #   langchain
     #   langchain-anthropic
-    #   langchain-community
     #   langchain-openai
     #   langchain-qdrant
     #   langchain-text-splitters
@@ -127,14 +151,15 @@ langchain-qdrant==0.1.4
     # via -r requirements.in
 langchain-text-splitters==0.3.0
     # via langchain
-langsmith==0.1.134
+langsmith==0.1.135
     # via
     #   langchain
-    #   langchain-community
     #   langchain-core
-lxml==5.3.0
-    # via -r requirements.in
-marshmallow==3.22.0
+lazify==0.4.0
+    # via chainlit
+literalai==0.0.607
+    # via chainlit
+marshmallow==3.23.0
     # via dataclasses-json
 multidict==6.1.0
     # via
@@ -142,118 +167,182 @@ multidict==6.1.0
     #   yarl
 mypy-extensions==1.0.0
     # via typing-inspect
+nest-asyncio==1.6.0
+    # via chainlit
 numpy==1.26.4
     # via
+    #   chainlit
     #   langchain
-    #   langchain-community
     #   qdrant-client
-openai==1.51.2
+openai==1.52.0
     # via
     #   -r requirements.in
     #   langchain-openai
+opentelemetry-api==1.27.0
+    # via
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-exporter-otlp-proto-http
+    #   opentelemetry-instrumentation
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
+    #   uptrace
+opentelemetry-exporter-otlp==1.27.0
+    # via uptrace
+opentelemetry-exporter-otlp-proto-common==1.27.0
+    # via
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-exporter-otlp-proto-http
+opentelemetry-exporter-otlp-proto-grpc==1.27.0
+    # via opentelemetry-exporter-otlp
+opentelemetry-exporter-otlp-proto-http==1.27.0
+    # via opentelemetry-exporter-otlp
+opentelemetry-instrumentation==0.48b0
+    # via uptrace
+opentelemetry-proto==1.27.0
+    # via
+    #   opentelemetry-exporter-otlp-proto-common
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-exporter-otlp-proto-http
+opentelemetry-sdk==1.27.0
+    # via
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-exporter-otlp-proto-http
+    #   uptrace
+opentelemetry-semantic-conventions==0.48b0
+    # via opentelemetry-sdk
 orjson==3.10.7
     # via langsmith
-packaging==24.1
+packaging==23.2
     # via
+    #   chainlit
     #   huggingface-hub
     #   langchain-core
+    #   literalai
     #   marshmallow
 portalocker==2.10.1
     # via qdrant-client
 propcache==0.2.0
     # via yarl
-protobuf==5.28.2
-    # via grpcio-tools
+protobuf==4.25.5
+    # via
+    #   googleapis-common-protos
+    #   grpcio-tools
+    #   opentelemetry-proto
 pydantic==2.9.2
     # via
     #   anthropic
+    #   chainlit
+    #   fastapi
     #   langchain
     #   langchain-anthropic
     #   langchain-core
     #   langchain-qdrant
     #   langsmith
+    #   literalai
     #   openai
-    #   pydantic-settings
     #   qdrant-client
 pydantic-core==2.23.4
     # via pydantic
-pydantic-settings==2.5.2
-    # via langchain-community
-pymupdf==1.24.11
-    # via -r requirements.in
+pyjwt==2.9.0
+    # via chainlit
 python-dotenv==1.0.1
     # via
     #   -r requirements.in
-    #   pydantic-settings
+    #   chainlit
+python-engineio==4.10.1
+    # via python-socketio
+python-multipart==0.0.9
+    # via chainlit
+python-socketio==5.11.4
+    # via chainlit
 pyyaml==6.0.2
     # via
     #   huggingface-hub
     #   langchain
-    #   langchain-community
     #   langchain-core
 qdrant-client==1.12.0
-    # via
-    #   -r requirements.in
-    #   langchain-qdrant
+    # via langchain-qdrant
 regex==2024.9.11
     # via tiktoken
 requests==2.32.3
     # via
-    #   -r requirements.in
     #   huggingface-hub
     #   langchain
-    #   langchain-community
     #   langsmith
+    #   opentelemetry-exporter-otlp-proto-http
     #   requests-toolbelt
     #   tiktoken
 requests-toolbelt==1.0.0
     # via langsmith
+simple-websocket==1.1.0
+    # via python-engineio
 sniffio==1.3.1
     # via
     #   anthropic
     #   anyio
     #   httpx
     #   openai
-soupsieve==2.6
-    # via beautifulsoup4
-sqlalchemy==2.0.35
+sqlalchemy==2.0.36
+    # via langchain
+starlette==0.37.2
     # via
-    #   langchain
-    #   langchain-community
+    #   chainlit
+    #   fastapi
+syncer==2.0.3
+    # via chainlit
 tenacity==8.5.0
     # via
     #   langchain
-    #   langchain-community
     #   langchain-core
 tiktoken==0.8.0
     # via langchain-openai
 tokenizers==0.20.1
     # via anthropic
+tomli==2.0.2
+    # via chainlit
 tqdm==4.66.5
     # via
-    #   -r requirements.in
     #   huggingface-hub
     #   openai
 typing-extensions==4.12.2
     # via
     #   anthropic
     #   anyio
+    #   asyncer
+    #   fastapi
     #   huggingface-hub
     #   langchain-core
     #   multidict
     #   openai
+    #   opentelemetry-sdk
     #   pydantic
     #   pydantic-core
     #   sqlalchemy
+    #   starlette
     #   typing-inspect
+    #   uvicorn
 typing-inspect==0.9.0
     # via dataclasses-json
+uptrace==1.27.0
+    # via chainlit
 urllib3==2.2.3
     # via
     #   qdrant-client
     #   requests
-yarl==1.14.0
+uvicorn==0.25.0
+    # via chainlit
+watchfiles==0.20.0
+    # via chainlit
+wrapt==1.16.0
+    # via
+    #   deprecated
+    #   opentelemetry-instrumentation
+wsproto==1.2.0
+    # via simple-websocket
+yarl==1.15.4
     # via aiohttp
+zipp==3.20.2
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
