@@ -5,7 +5,15 @@ Environment Creation:
 1. 'pip install -r requirements.txt'
 
 Qdrant Setup:
-* include instructions on firing up the Qdrant server here
+To start qdrant:
+Make sure to install **Docker** if you haven't already.
+
+'docker run -p 6333:6333 -p 6334:6334 \
+    -v $(pwd)/qdrant_storage:/qdrant/storage:z \
+    qdrant/qdrant'
+
+To check if it's running:
+navigate to localhost:6333/dashboard in a browser
 
 Data Processing:
 1. Ensure your notebook is using the virtual environment

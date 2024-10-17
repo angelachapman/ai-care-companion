@@ -1,0 +1,8 @@
+pymupdf
+lxml
+html2text
+bs4
+tqdm
+qdrant-client
+langchain-community
+requests
