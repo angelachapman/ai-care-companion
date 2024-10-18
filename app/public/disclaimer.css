@@ -4,13 +4,12 @@ a[href*='https://github.com/Chainlit/chainlit'] {
 }
 
 a[href*='https://github.com/Chainlit/chainlit']::after {
-    content: "AI can make mistakes. This chatbot is not intended to provide medical, financial or legal advice. Always check with a professional if you have medical questions."; /* New text to display */
+    content: "AI can make mistakes. It can't provide medical, financial or legal advice. Please talk to a professional if you have medical questions."; /* New text to display */
     visibility: visible;
     color: Grey; /* Color of the new text */
     position: fixed; /* Position relative to the page */
     bottom: 20px; /* Adjust to where you want the text vertically */
     left: 50%; /* Center horizontally relative to the page */
     transform: translateX(-50%); /* Make sure it's truly centered */
-    white-space: nowrap; /* Ensure it stays on one line */
     font-size: 12px
 }

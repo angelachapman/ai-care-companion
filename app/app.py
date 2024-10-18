@@ -14,8 +14,8 @@ from langchain.memory import ConversationBufferWindowMemory
 from langchain.chains import create_history_aware_retriever
 from langchain_core.prompts import MessagesPlaceholder
 
-from vars import SYSTEM_PROMPT, MAX_CONTEXT, GREETING, COLLECTION_NAME, URL
-from vars import HAIKU, SONNET, TEMPERATURE, TOP_P, MAX_TOKENS, MAX_MEMORY
+from app.vars import SYSTEM_PROMPT, MAX_CONTEXT, GREETING, COLLECTION_NAME, URL
+from app.vars import HAIKU, SONNET, TEMPERATURE, TOP_P, MAX_TOKENS, MAX_MEMORY
 from utils import add_sources
 
 import logging
@@ -49,8 +49,7 @@ def init_retriever(llm):
         search_kwargs={'k': 10, 'lambda_mult': 0.1}
     )
     similarity_retriever = store.as_retriever(k=10)
-    ensemble_retriever = EnsembleRetriever(retrievers=[mmr_retriever,similarity_retriever],
-                                  id_key="url")
+    ensemble_retriever = EnsembleRetriever(retrievers=[mmr_retriever,similarity_retriever])
     
     retriever_prompt = ChatPromptTemplate.from_messages([
         MessagesPlaceholder(variable_name="chat_history"),
@@ -121,7 +120,7 @@ async def main(message: cl.Message):
             "chat_history": memory.chat_memory.messages
         }
         context_docs = await retriever.ainvoke(retriever_inputs)
-        
+
         context_docs = context_docs[:MAX_CONTEXT]  # Limit context size if necessary
         sources = add_sources(context_docs)
         formatted_context = "\n".join([doc.page_content for doc in context_docs])
