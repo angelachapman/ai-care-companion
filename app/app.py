@@ -17,6 +17,7 @@ from langchain_core.prompts import MessagesPlaceholder
 
 from vars import SYSTEM_PROMPT, MAX_CONTEXT, GREETING, COLLECTION_NAME, URL
 from vars import HAIKU, SONNET, TEMPERATURE, TOP_P, MAX_TOKENS, MAX_MEMORY
+from vars import FACT_CHECKER_MESSAGE, FACT_CHECKER_PROMPT, FACT_CHECKER_GIVE_UP_MESSAGE
 from utils import add_sources, get_toolbelt, use_eldercare_api
 
 # Environment vars
@@ -63,6 +64,8 @@ def init_retriever(llm):
 async def start():    
 
     rag_prompt = PromptTemplate.from_template(SYSTEM_PROMPT)
+    fact_checker_prompt = PromptTemplate.from_template(FACT_CHECKER_PROMPT)
+
     haiku_llm = ChatAnthropic(
         model=HAIKU,    
         anthropic_api_key=ANTHROPIC_API_KEY,
@@ -77,10 +80,19 @@ async def start():
         top_p = TOP_P,
         max_tokens = MAX_TOKENS
     )
+
     llm_with_tools = ChatAnthropic(
         model="claude-3-haiku-20240307",    
         anthropic_api_key=ANTHROPIC_API_KEY,
     ).bind_tools(get_toolbelt())
+
+    fact_checker_llm = ChatAnthropic(
+        model=SONNET, # Haiku is unable to reliably accomplish this. Good use case for fine tuning a small llm?
+        anthropic_api_key=ANTHROPIC_API_KEY,
+        temperature = TEMPERATURE,
+        top_p = TOP_P,
+        max_tokens = 1
+    )
 
     memory = ConversationBufferWindowMemory(k=MAX_MEMORY)
 
@@ -97,6 +109,8 @@ async def start():
     cl.user_session.set("rag_prompt",rag_prompt)
     cl.user_session.set("llm",sonnet_llm) # Change this line to swap out the main LLM!!
     cl.user_session.set("llm_with_tools",llm_with_tools)
+    cl.user_session.set("fact_checker_llm",fact_checker_llm)
+    cl.user_session.set("fact_checker_prompt",fact_checker_prompt)
     cl.user_session.set("memory",memory)
 
     msg = cl.Message(content=GREETING)
@@ -110,11 +124,12 @@ async def main(message: cl.Message):
     rag_prompt = cl.user_session.get("rag_prompt")
     llm = cl.user_session.get("llm")
     llm_with_tools = cl.user_session.get("llm_with_tools")
+
+    fact_checker_llm = cl.user_session.get("fact_checker_llm")
+    fact_checker_prompt = cl.user_session.get("fact_checker_prompt")
     
     memory = cl.user_session.get("memory")
     memory.chat_memory.add_user_message(message.content)
-
-    print(f"memory: {memory.load_memory_variables({})['history']}")
 
     msg = cl.Message(content="")
 
@@ -128,43 +143,71 @@ async def main(message: cl.Message):
         tool_output_task = use_eldercare_api(memory.chat_memory.messages, llm_with_tools)
         context_docs, tool_output = await asyncio.gather(retriever_task, tool_output_task)
 
-        #context_docs = await retriever.ainvoke(retriever_inputs)
-
         context_docs = context_docs[:MAX_CONTEXT]  # Limit context size if necessary
         sources = add_sources(context_docs)
         formatted_context = "\n".join([doc.page_content for doc in context_docs])
 
-        #tool_output = await use_eldercare_api(memory.chat_memory.messages,llm_with_tools)
-
     except Exception as e:
         print(f"Error in retrieval or tool use: {e}")
-        await cl.Message(content="An error occurred processing your request").send()
+        await cl.Message(content="I'm sorry, an error occurred processing your request").send()
+
+    ai_response = ""
+    fact_checker_passed = False
+    attempt = 1
+    max_tries = 2
 
     if context_docs:
-        try:
-            prompt_inputs = {
-                'context': formatted_context,
-                'history': memory.load_memory_variables({})["history"],
-                'tool_output': tool_output,
-                'query': message.content
-            }
+        while not fact_checker_passed and attempt<=max_tries:
+            try:
+                prompt_inputs = {
+                    'context': formatted_context,
+                    'history': memory.load_memory_variables({})["history"],
+                    'tool_output': tool_output,
+                    'query': message.content
+                }
 
-            prompt_text = rag_prompt.format(**prompt_inputs)
+                prompt_text = rag_prompt.format(**prompt_inputs)
 
-            ai_response = ""
-            async for chunk in llm.astream(prompt_text):
-                #print(chunk)
-                ai_response+=chunk.content
-                await msg.stream_token(chunk.content)
+                async for chunk in llm.astream(prompt_text):
+                    #print(chunk) #uncomment to debug streaming
+                    ai_response+=chunk.content
+                    await msg.stream_token(chunk.content)
 
-            await msg.stream_token(sources)
-            await msg.send()
-            memory.chat_memory.add_ai_message(ai_response)
+                await msg.stream_token(sources)
+                await msg.send()
 
-        except Exception as e:
-            print(f"Error in chain execution: {e}")
-            await cl.Message(content="An error occurred processing your request").send()
+                fact_checker_prompt_inputs = {
+                    'context': formatted_context,
+                    'tool_output': tool_output,
+                    'ai_response': ai_response # change this line to something irrelevant or untrue to test the fact-checker
+                }
+                fact_checker_prompt_text = fact_checker_prompt.format(**fact_checker_prompt_inputs)
+                fact_checker_output = await fact_checker_llm.ainvoke(fact_checker_prompt_text)
+                if fact_checker_output:
+                    print(f"fact checker results: {fact_checker_output.content}")
+                    
+                    if 'y' in fact_checker_output.content.lower():
+                        # if the checker thinks we gave erroneous info, remove the last message and try again
+                        await msg.remove()
+                        if attempt == 1: 
+                            await cl.Message(content=FACT_CHECKER_MESSAGE).send()
+                            msg = cl.Message(content="")
+                        elif attempt < max_tries:
+                            msg = cl.Message(content="")
+                        else:
+                            ai_response = FACT_CHECKER_GIVE_UP_MESSAGE
+                            await cl.Message(content=ai_response).send()
+                    else:
+                        fact_checker_passed = True
+                
+            except Exception as e:
+                print(f"Error in chain execution or guardail: {e}")
+                await cl.Message(content="I'm sorry, an error occurred processing your request").send()
 
+            attempt += 1
+
+
+    memory.chat_memory.add_ai_message(ai_response)
     cl.user_session.set("memory",memory)
 
 if __name__ == "__main__":

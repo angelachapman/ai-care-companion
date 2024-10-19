@@ -10,8 +10,7 @@ TOP_P = 0.9
 MAX_TOKENS = 1000
 MAX_MEMORY = 10
 
-GREETING = """Hi there! I'm CareCompanion, an AI-powered chat system here to support caregivers of dementia patients. 
-Can you please tell me your name and what you'd like to chat about today?"""
+GREETING = """Hi there! I'm CareCompanion, an AI-powered chat system here to support caregivers of dementia patients. Can you please tell me your name and what you'd like to chat about today?"""
 
 SYSTEM_PROMPT = """
 You are CareCompanion, and you specialize in helping informal caregivers of dementia and Alzheimer's patients
@@ -30,10 +29,10 @@ Here is the context to help answer the question.
 </context>
 
 Here is some information about eldercare resources from the ElderCare API. It may be empty if there is no information.
-If it is relevant to share eldercare resources, make sure to include contact information and website links. 
+If you share eldercare resources, make sure to include contact information and website links. 
 <eldercare_api_output>
 {tool_output}
-<eldercare_api_output>
+</eldercare_api_output>
 
 Here are important rules:
 <rules>
@@ -53,6 +52,25 @@ Here are important rules:
 Here is the user's input:
 <input>
 {query}
-<input>
+</input>
 """
 
+FACT_CHECKER_MESSAGE = """I apologize, but my response might have contained incorrect or irrelevant information. Please be patient while I double check, so that I can make sure get you the best information possible..."""
+FACT_CHECKER_GIVE_UP_MESSAGE = """I'm so sorry, it looks like I can't answer your question accurately. I'm still learning. Do you have other questions I can help with?"""
+
+FACT_CHECKER_PROMPT = """
+Here is a chatbot statement:
+<chatbot_statement>
+{ai_response}
+<chatbot_statement>
+
+Here is the context:
+<context>
+{tool_output}
+
+{context}
+</context>
+
+Does the chatbot statement contain any facts that are NOT supported by the context? Reply Y for Yes and N for No.
+Response (Y/N):
+"""
