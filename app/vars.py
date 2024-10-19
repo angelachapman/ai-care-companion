@@ -10,7 +10,7 @@ TOP_P = 0.9
 MAX_TOKENS = 1000
 MAX_MEMORY = 10
 
-GREETING = """Hi there! I'm designed to help support caregivers of dementia patients. 
+GREETING = """Hi there! I'm CareCompanion, an AI-powered chat system here to support caregivers of dementia patients. 
 Can you please tell me your name and what you'd like to chat about today?"""
 
 SYSTEM_PROMPT = """
