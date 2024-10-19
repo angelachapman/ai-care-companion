@@ -95,7 +95,7 @@ async def start():
 
     cl.user_session.set("retriever",retriever)
     cl.user_session.set("rag_prompt",rag_prompt)
-    cl.user_session.set("llm",haiku_llm)
+    cl.user_session.set("llm",sonnet_llm) # Change this line to swap out the main LLM!!
     cl.user_session.set("llm_with_tools",llm_with_tools)
     cl.user_session.set("memory",memory)
 
