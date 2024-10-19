@@ -8,4 +8,5 @@ asyncio
 langchain
 langchain-core
 langchain-qdrant
+zeep
 

@@ -4,6 +4,7 @@ from typing import cast
 from dotenv import load_dotenv
 
 import chainlit as cl
+import asyncio
 
 from langchain_qdrant import QdrantVectorStore
 from langchain_anthropic import ChatAnthropic
@@ -14,12 +15,9 @@ from langchain.memory import ConversationBufferWindowMemory
 from langchain.chains import create_history_aware_retriever
 from langchain_core.prompts import MessagesPlaceholder
 
-from app.vars import SYSTEM_PROMPT, MAX_CONTEXT, GREETING, COLLECTION_NAME, URL
-from app.vars import HAIKU, SONNET, TEMPERATURE, TOP_P, MAX_TOKENS, MAX_MEMORY
-from utils import add_sources
-
-import logging
-logging.basicConfig(level=logging.INFO)
+from vars import SYSTEM_PROMPT, MAX_CONTEXT, GREETING, COLLECTION_NAME, URL
+from vars import HAIKU, SONNET, TEMPERATURE, TOP_P, MAX_TOKENS, MAX_MEMORY
+from utils import add_sources, get_toolbelt, use_eldercare_api
 
 # Environment vars
 load_dotenv('.env')
@@ -79,6 +77,11 @@ async def start():
         top_p = TOP_P,
         max_tokens = MAX_TOKENS
     )
+    llm_with_tools = ChatAnthropic(
+        model="claude-3-haiku-20240307",    
+        anthropic_api_key=ANTHROPIC_API_KEY,
+    ).bind_tools(get_toolbelt())
+
     memory = ConversationBufferWindowMemory(k=MAX_MEMORY)
 
     retriever = None
@@ -93,6 +96,7 @@ async def start():
     cl.user_session.set("retriever",retriever)
     cl.user_session.set("rag_prompt",rag_prompt)
     cl.user_session.set("llm",haiku_llm)
+    cl.user_session.set("llm_with_tools",llm_with_tools)
     cl.user_session.set("memory",memory)
 
     msg = cl.Message(content=GREETING)
@@ -105,6 +109,7 @@ async def main(message: cl.Message):
     retriever = cl.user_session.get("retriever")
     rag_prompt = cl.user_session.get("rag_prompt")
     llm = cl.user_session.get("llm")
+    llm_with_tools = cl.user_session.get("llm_with_tools")
     
     memory = cl.user_session.get("memory")
     memory.chat_memory.add_user_message(message.content)
@@ -119,14 +124,20 @@ async def main(message: cl.Message):
             "input": message.content,
             "chat_history": memory.chat_memory.messages
         }
-        context_docs = await retriever.ainvoke(retriever_inputs)
+        retriever_task = retriever.ainvoke(retriever_inputs)
+        tool_output_task = use_eldercare_api(memory.chat_memory.messages, llm_with_tools)
+        context_docs, tool_output = await asyncio.gather(retriever_task, tool_output_task)
+
+        #context_docs = await retriever.ainvoke(retriever_inputs)
 
         context_docs = context_docs[:MAX_CONTEXT]  # Limit context size if necessary
         sources = add_sources(context_docs)
         formatted_context = "\n".join([doc.page_content for doc in context_docs])
 
+        #tool_output = await use_eldercare_api(memory.chat_memory.messages,llm_with_tools)
+
     except Exception as e:
-        print(f"Error in retrieval: {e}")
+        print(f"Error in retrieval or tool use: {e}")
         await cl.Message(content="An error occurred processing your request").send()
 
     if context_docs:
@@ -134,6 +145,7 @@ async def main(message: cl.Message):
             prompt_inputs = {
                 'context': formatted_context,
                 'history': memory.load_memory_variables({})["history"],
+                'tool_output': tool_output,
                 'query': message.content
             }
 
