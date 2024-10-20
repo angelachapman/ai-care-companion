@@ -2,6 +2,7 @@ care-companion-env
 .DS_Store
 source_documents.json
 downloaded_document.pdf
+downloaded_document*.pdf
 .chainlit/translations
 .env
 .files

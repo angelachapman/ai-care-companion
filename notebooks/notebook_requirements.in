@@ -1,0 +1,16 @@
+pymupdf
+lxml
+bs4
+tqdm
+qdrant-client
+requests
+langchain
+langchain-community
+langchain-openai
+langchain-anthropic
+langchain-qdrant
+langchain-experimental
+zeep
+ragas>0.2
+pandas
+nltk
