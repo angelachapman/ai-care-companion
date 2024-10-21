@@ -154,7 +154,7 @@ async def main(message: cl.Message):
     ai_response = ""
     fact_checker_passed = False
     attempt = 1
-    max_tries = 2
+    max_tries = 3
 
     if context_docs:
         while not fact_checker_passed and attempt<=max_tries:
