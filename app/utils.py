@@ -92,14 +92,23 @@ async def use_eldercare_api(messages,llm_with_tools):
 # Simple function to format sources as links before appending to a response
 def add_sources(context: list[Document]) -> str:
     sources = []
-    for idx, doc in enumerate(context, 1):
+    i=1
+    for doc in context:
         url = doc.metadata.get('url', None)
         if url:
             # Remove any accidental escaping backslashes
             clean_url = url.replace("\\", "")
-            sources.append(f"[{idx}]({clean_url})")
+            already_have_it = False
+            # Check for duplicates
+            for source in sources:
+                if clean_url in source:
+                    already_have_it = True
+            if not already_have_it:
+                sources.append(f"[{idx}]({clean_url})")
+                i+=1
         else:
             sources.append(f"{idx} (No URL)")
+            i+=1
     sources_str = "\n\nSources: " + " ".join(sources)
     return sources_str
 
