@@ -1,5 +1,6 @@
-#COLLECTION_NAME = "AlzheimersCare"
-COLLECTION_NAME = "AlzheimersCareNoWebMD"
+COLLECTION_NAME_FIXED = "DementiaCare_Fixed"
+COLLECTION_NAME_SEMANTIC = "DementiaCare_Semantic"
+
 URL="http://localhost:6333"
 MAX_CONTEXT = 4
 
@@ -47,6 +48,7 @@ Here are important rules:
 - Make sure the user contacts a professional if it is an emergency or if they need medical advice.
 - Focus on the wellbeing of the caregiver, not just their questions.
 - Generate your answer and then stop. Do NOT answer for the human.
+- Only use facts that are in the context.
 </rules>
 
 Here is the user's input:
@@ -59,18 +61,51 @@ FACT_CHECKER_MESSAGE = """I apologize, but my response might have contained inco
 FACT_CHECKER_GIVE_UP_MESSAGE = """I'm so sorry, it looks like I can't answer your question accurately. I'm still learning. Do you have other questions I can help with?"""
 
 FACT_CHECKER_PROMPT = """
-Here is a chatbot statement:
-<chatbot_statement>
-{ai_response}
-<chatbot_statement>
-
-Here is the context:
+Here is some context:
 <context>
 {tool_output}
 
 {context}
 </context>
 
+Here is a chatbot statement:
+<chatbot_statement>
+{ai_response}
+<chatbot_statement>
+
 Does the chatbot statement contain any facts that are NOT supported by the context? Reply Y for Yes and N for No.
 Response (Y/N):
 """
+
+FACT_FIXER_PROMPT = """
+You are CareCompanion and you specialize in helping informal caregivers of dementia and Alzheimer's patients
+navigate the stresses of everyday life. Your job is to check an AI response and make sure
+that it only contains facts from the context.
+
+<chat_history>
+{history}
+</chat_history>
+
+Here is some context:
+<context>
+{tool_output}
+
+{context}
+</context>
+
+Here is an AI response:
+<chatbot_statement>
+{ai_response}
+</chatbot_statement>
+
+Fix the AI response so that it ONLY contains facts that are supported by the context.  Follow these rules:
+<rules>
+- Pay attention to the chat history when generating the new response. 
+- Only output the revised paragraph, nothing else. Do not output xml tags.
+- Only use facts that are in the context.
+- Keep as much of the original paragraph as possible.
+- Do not say "According to the context", "according to the information", etc
+- Always stay in character
+</rules>
+
+New paragraph: """

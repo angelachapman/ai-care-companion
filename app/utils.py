@@ -19,7 +19,7 @@ client = Client(wsdl=wsdl)
 
 @tool
 def search_by_city_state(city: str, state: str):
-    """Uses the Eldercare Data API to search for elder care close to a given city and state"""
+    """Uses the Eldercare Data API to search for elder care close to a given city and two-letter state abbreviation"""
     session_token = client.service.login(ELDERCARE_API_USERNAME, ELDERCARE_API_PASSWORD)
     return client.service.SearchByCityState(asCity=city, asState=state, asToken=session_token)
 
@@ -104,10 +104,10 @@ def add_sources(context: list[Document]) -> str:
                 if clean_url in source:
                     already_have_it = True
             if not already_have_it:
-                sources.append(f"[{idx}]({clean_url})")
+                sources.append(f"[{i}]({clean_url})")
                 i+=1
         else:
-            sources.append(f"{idx} (No URL)")
+            sources.append(f"{i} (No URL)")
             i+=1
     sources_str = "\n\nSources: " + " ".join(sources)
     return sources_str
