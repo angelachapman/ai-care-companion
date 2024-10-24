@@ -15,19 +15,33 @@ ELDERCARE_API_PASSWORD = os.getenv("ELDERCARE_API_PASSWORD")
 
 # Initialize the ElderCare API client with the WSDL URL
 wsdl = 'https://eldercare.acl.gov/WebServices/EldercareData/ec_search.asmx?WSDL'
-client = Client(wsdl=wsdl)
+client = None
+try:
+    client = Client(wsdl=wsdl)
+except Exception as e:
+    print(f"error initializing client: {e}")
 
 @tool
 def search_by_city_state(city: str, state: str):
     """Uses the Eldercare Data API to search for elder care close to a given city and two-letter state abbreviation"""
-    session_token = client.service.login(ELDERCARE_API_USERNAME, ELDERCARE_API_PASSWORD)
-    return client.service.SearchByCityState(asCity=city, asState=state, asToken=session_token)
+    result = ""
+    try:
+        session_token = client.service.login(ELDERCARE_API_USERNAME, ELDERCARE_API_PASSWORD)
+        result = client.service.SearchByCityState(asCity=city, asState=state, asToken=session_token)
+    except Exception as e:
+        print(f"error in API call: {e}")
+    return result
 
 @tool
 def search_by_zip(zip_code: str):
     """Uses the Eldercare Data API to search for elder care close to a zip code"""
-    session_token = client.service.login(ELDERCARE_API_USERNAME, ELDERCARE_API_PASSWORD)
-    return client.service.SearchByZip(asZipCode=zip_code, asToken=session_token)
+    result = ""
+    try: 
+        session_token = client.service.login(ELDERCARE_API_USERNAME, ELDERCARE_API_PASSWORD)
+        result = client.service.SearchByZip(asZipCode=zip_code, asToken=session_token)
+    except Exception as e:
+        print(f"error in API call: {e}")
+    return result
 
 def get_toolbelt():
     return [search_by_city_state, search_by_zip]
