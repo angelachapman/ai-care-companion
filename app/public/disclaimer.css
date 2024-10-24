@@ -14,3 +14,9 @@ a[href*='https://github.com/Chainlit/chainlit']::after {
     font-size: 12px;
     white-space: nowrap
 }
+
+img[src*="logo"] {
+    max-height: none !important;  /* Remove the max-height restriction */
+    height: 50px !important;     /* Set the desired height */
+    width: auto !important;       /* Maintain aspect ratio */
+}

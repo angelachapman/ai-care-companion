@@ -125,6 +125,10 @@ async def start():
     msg = cl.Message(content=GREETING)
     await msg.send()
 
+@cl.author_rename
+def rename(orig_author: str):
+    rename_dict = {"Assistant": "CareCompanion"}
+    return rename_dict.get(orig_author, orig_author)
 
 @cl.on_message
 async def main(message: cl.Message):
@@ -193,7 +197,7 @@ async def main(message: cl.Message):
                 fact_checker_prompt_inputs = {
                     'context': formatted_context,
                     'tool_output': tool_output,
-                    'ai_response': "the sky is blue" # change this line to something irrelevant or untrue to test the fact-checker
+                    'ai_response': ai_response # change this line to something irrelevant or untrue to test the fact-checker
                     }
 
                 fact_checker_prompt_text = fact_checker_prompt.format(**fact_checker_prompt_inputs)
@@ -216,7 +220,7 @@ async def main(message: cl.Message):
                                 'history': memory.load_memory_variables({})["history"],
                                 'context': formatted_context,
                                 'tool_output': tool_output,
-                                'ai_response': "the sky is blue" # change this line to something irrelevant or untrue to test the fact-checker
+                                'ai_response': ai_response # change this line to something irrelevant or untrue to test the fact-checker
                             }
                             fact_fixer_prompt_text = fact_fixer_prompt.format(**fact_fixer_prompt_inputs)
 

@@ -54,7 +54,7 @@ edit_message = true
 
 [UI]
 # Name of the assistant.
-name = "Care Companion"
+name = "CareCompanion"
 
 # Description of the assistant. This is used for HTML tags.
 description = "An AI chatbot designed to help support dementia caregivers"
