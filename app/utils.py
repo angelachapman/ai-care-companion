@@ -1,11 +1,17 @@
 import os
 from dotenv import load_dotenv
 
+import chainlit as cl
+
 from langchain.schema import Document
 from langchain_core.tools import tool
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain.memory.chat_memory import BaseChatMemory
 
 from zeep import Client
 from zeep.helpers import serialize_object
+
+from vars import FACT_CHECKER_PROMPT, FACT_CHECKER_MESSAGE, FACT_FIXER_PROMPT, FACT_CHECKER_GIVE_UP_MESSAGE
 
 #### Code to work with the Eldercare API ####
 
@@ -26,6 +32,8 @@ def search_by_city_state(city: str, state: str):
     """Uses the Eldercare Data API to search for elder care close to a given city and two-letter state abbreviation"""
     result = ""
     try:
+        if not client:
+            client = Client(wsdl=wsdl)
         session_token = client.service.login(ELDERCARE_API_USERNAME, ELDERCARE_API_PASSWORD)
         result = client.service.SearchByCityState(asCity=city, asState=state, asToken=session_token)
     except Exception as e:
@@ -37,6 +45,8 @@ def search_by_zip(zip_code: str):
     """Uses the Eldercare Data API to search for elder care close to a zip code"""
     result = ""
     try: 
+        if not client:
+            client = Client(wsdl=wsdl)
         session_token = client.service.login(ELDERCARE_API_USERNAME, ELDERCARE_API_PASSWORD)
         result = client.service.SearchByZip(asZipCode=zip_code, asToken=session_token)
     except Exception as e:
@@ -126,3 +136,58 @@ def add_sources(context: list[Document]) -> str:
     sources_str = "\n\nSources: " + " ".join(sources)
     return sources_str
 
+# Fact-checking function
+async def check_facts(formatted_context:str, tool_output:str, ai_response:str,
+                      fact_checker_llm:BaseChatModel, memory:BaseChatMemory, fact_fixer_llm:BaseChatModel,
+                      attempt:int=1, max_tries:int=3) -> bool:
+    
+    fact_checker_passed = False
+    fact_checker_prompt_inputs = {
+                    'context': formatted_context,
+                    'tool_output': tool_output,
+                    'ai_response': ai_response # change this line to something irrelevant or untrue to test the fact-checker
+                    }
+
+    # check whether the response is factual. "Y" indicates a problem, "N" indicates that the 
+    # response is ok
+    fact_checker_prompt_text = FACT_CHECKER_PROMPT.format(**fact_checker_prompt_inputs)
+    fact_checker_output = await fact_checker_llm.ainvoke(fact_checker_prompt_text)
+
+    if fact_checker_output:
+        print(f"fact checker results: {fact_checker_output.content}")
+                    
+        if 'y' in fact_checker_output.content.lower():
+            # if the checker thinks we gave erroneous info, remove the last message and try again
+            await msg.remove()
+            if attempt == 1: 
+                await cl.Message(content=FACT_CHECKER_MESSAGE).send()
+                print("regenerating response -- attempt 1")
+                        
+            if attempt < max_tries:
+                # Attempt to fix the response without re-doing retrieval 
+                msg = cl.Message(content="")
+                ai_response = ""
+                fact_fixer_prompt_inputs = {
+                    'history': memory.load_memory_variables({})["history"],
+                    'context': formatted_context,
+                    'tool_output': tool_output,
+                    'ai_response': ai_response # change this line to something irrelevant or untrue to test the fact-checker
+                }
+                fact_fixer_prompt_text = FACT_FIXER_PROMPT.format(**fact_fixer_prompt_inputs)
+
+                async for chunk in fact_fixer_llm.astream(fact_fixer_prompt_text):
+                    #print(chunk) #uncomment to debug streaming
+                    ai_response+=chunk.content
+                    await msg.stream_token(chunk.content)
+
+                await msg.stream_token(sources)
+                await msg.send()
+            else:
+                # If max_tries is reached, send a "give up" message to avoid an infinite loop
+                ai_response = FACT_CHECKER_GIVE_UP_MESSAGE
+                await cl.Message(content=ai_response).send()
+                print(f"reached max attempts, generating give-up message")
+
+        else:
+            fact_checker_passed = True
+    return fact_checker_passed

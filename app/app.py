@@ -1,4 +1,3 @@
-from operator import itemgetter
 import os
 from typing import cast
 from dotenv import load_dotenv
@@ -11,7 +10,7 @@ from langchain_qdrant import QdrantVectorStore
 from langchain_anthropic import ChatAnthropic
 from langchain_openai import OpenAIEmbeddings
 from langchain.retrievers import EnsembleRetriever
-from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.chains import create_history_aware_retriever
 from langchain_core.prompts import MessagesPlaceholder
@@ -19,14 +18,16 @@ from langchain_core.prompts import MessagesPlaceholder
 from vars import SYSTEM_PROMPT, MAX_CONTEXT, GREETING
 from vars import COLLECTION_NAME_FIXED, COLLECTION_NAME_SEMANTIC, URL
 from vars import HAIKU, SONNET, TEMPERATURE, TOP_P, MAX_TOKENS, MAX_MEMORY
-from vars import FACT_CHECKER_MESSAGE, FACT_CHECKER_PROMPT, FACT_CHECKER_GIVE_UP_MESSAGE, FACT_FIXER_PROMPT
-from utils import add_sources, get_toolbelt, use_eldercare_api
+from utils import add_sources, get_toolbelt, use_eldercare_api, check_facts
 
 # Environment vars
 load_dotenv('.env')
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-LANGCHAIN_API_KEY = os.getenv("LANGCHAIN_API_KEY")
+try:
+    LANGCHAIN_API_KEY = os.getenv("LANGCHAIN_API_KEY")
+except:
+    print(f"Langsmith API key not found; tracing will not be enabled")
 
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 unique_id = uuid4().hex[0:8]
@@ -36,7 +37,6 @@ if not ANTHROPIC_API_KEY or not OPENAI_API_KEY:
     raise ValueError("ANTHROPIC_API_KEY or OPENAI_API_KEY environment variable is not set")
 
 # Embedding model
-from langchain_openai import OpenAIEmbeddings
 openai_embeddings = OpenAIEmbeddings(
     model="text-embedding-3-large",
     openai_api_key=OPENAI_API_KEY  
@@ -88,11 +88,7 @@ async def start():
         top_p = TOP_P,
         max_tokens = MAX_TOKENS
     )
-
-    llm_with_tools = ChatAnthropic(
-        model="claude-3-haiku-20240307",    
-        anthropic_api_key=ANTHROPIC_API_KEY,
-    ).bind_tools(get_toolbelt())
+    llm_with_tools = haiku_llm.bind_tools(get_toolbelt())
 
     fact_checker_llm = ChatAnthropic(
         model=SONNET, # Haiku is unable to reliably accomplish this. Good use case for fine tuning a small llm?
@@ -116,7 +112,7 @@ async def start():
     memory.chat_memory.add_ai_message(GREETING)
 
     cl.user_session.set("retriever",retriever)
-    cl.user_session.set("llm",sonnet_llm) # Change this line to swap out the main LLM!!
+    cl.user_session.set("llm",sonnet_llm) # Change this line to swap out the main question answering LLM!!
     cl.user_session.set("llm_with_tools",llm_with_tools)
     cl.user_session.set("fact_checker_llm",fact_checker_llm)
     cl.user_session.set("fact_fixer_llm",fact_fixer_llm)
@@ -134,15 +130,10 @@ def rename(orig_author: str):
 async def main(message: cl.Message):
 
     retriever = cl.user_session.get("retriever")
-    rag_prompt = SYSTEM_PROMPT
     llm = cl.user_session.get("llm")
     llm_with_tools = cl.user_session.get("llm_with_tools")
-
     fact_checker_llm = cl.user_session.get("fact_checker_llm")
-    fact_checker_prompt = FACT_CHECKER_PROMPT
-
     fact_fixer_llm = cl.user_session.get("fact_fixer_llm")
-    fact_fixer_prompt = FACT_FIXER_PROMPT
     
     memory = cl.user_session.get("memory")
     memory.chat_memory.add_user_message(message.content)
@@ -182,7 +173,7 @@ async def main(message: cl.Message):
                 'query': message.content
             }
 
-            prompt_text = rag_prompt.format(**prompt_inputs)
+            prompt_text = SYSTEM_PROMPT.format(**prompt_inputs)
 
             async for chunk in llm.astream(prompt_text):
                 #print(chunk) #uncomment to debug streaming
@@ -194,50 +185,9 @@ async def main(message: cl.Message):
 
             while not fact_checker_passed and attempt<=max_tries:
 
-                fact_checker_prompt_inputs = {
-                    'context': formatted_context,
-                    'tool_output': tool_output,
-                    'ai_response': ai_response # change this line to something irrelevant or untrue to test the fact-checker
-                    }
-
-                fact_checker_prompt_text = fact_checker_prompt.format(**fact_checker_prompt_inputs)
-                fact_checker_output = await fact_checker_llm.ainvoke(fact_checker_prompt_text)
-
-                if fact_checker_output:
-                    print(f"fact checker results: {fact_checker_output.content}")
-                    
-                    if 'y' in fact_checker_output.content.lower():
-                        # if the checker thinks we gave erroneous info, remove the last message and try again
-                        await msg.remove()
-                        if attempt == 1: 
-                            await cl.Message(content=FACT_CHECKER_MESSAGE).send()
-                            print("regenerating response -- attempt 1")
-                        
-                        if attempt < max_tries:
-                            msg = cl.Message(content="")
-                            ai_response = ""
-                            fact_fixer_prompt_inputs = {
-                                'history': memory.load_memory_variables({})["history"],
-                                'context': formatted_context,
-                                'tool_output': tool_output,
-                                'ai_response': ai_response # change this line to something irrelevant or untrue to test the fact-checker
-                            }
-                            fact_fixer_prompt_text = fact_fixer_prompt.format(**fact_fixer_prompt_inputs)
-
-                            async for chunk in fact_fixer_llm.astream(fact_fixer_prompt_text):
-                                #print(chunk) #uncomment to debug streaming
-                                ai_response+=chunk.content
-                                await msg.stream_token(chunk.content)
-
-                            await msg.stream_token(sources)
-                            await msg.send()
-                        else:
-                            ai_response = FACT_CHECKER_GIVE_UP_MESSAGE
-                            await cl.Message(content=ai_response).send()
-                            print(f"reached max attempts, generating give-up message")
-
-                    else:
-                        fact_checker_passed = True
+                fact_checker_passed = await check_facts(formatted_context, tool_output, ai_response,
+                                                        fact_checker_llm, memory, fact_fixer_llm,
+                                                        attempt, max_tries)
                 attempt += 1
                 
         except Exception as e:

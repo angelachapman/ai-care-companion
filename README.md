@@ -1,21 +1,40 @@
 # ai-care-companion
 
-Environment Creation:
-1. Create a virtual environment and activate it
-1. 'pip install -r requirements.txt'
 
-Qdrant Setup:
-To start qdrant:
-Make sure to install **Docker** if you haven't already.
+**Prerequisites**
 
+This chatbot uses Anthropic LLMs, OpenAI embeddings, the [ElderCare API](https://eldercare.acl.gov/Public/Index.aspx), and (optionally) Langsmith tracing.
+In order to use it, you must first get API keys for all of the above. Either place them in a .env file
+or export them some other way into your environment as:
+* ANTHROPIC_API_KEY
+* OPENAI_API_KEY
+* ELDERCARE_API_USERNAME
+* ELDERCARE_API_PASSWORD
+* LANGCHAIN_API_KEY
+
+You will also need to install Docker and [Qdrant](https://qdrant.tech/) on your development machine.
+
+**Environment Creation**
+
+Chainlit is a little fussy about compatibility, so this project has separate environments for the notebooks and Chainlit app.
+1. For the notebooks, create an environment and install notebook_requirements.txt
+1. For the app, create an environment and install app_requirements.txt
+
+
+**Kicking off Qdrant**
+This project uses Qdrant as its vector database. To ensure quick performance, we populate the database once and then re-use it.
+
+To start qdrant, in your terminal type:
 'docker run -p 6333:6333 -p 6334:6334 \
     -v $(pwd)/qdrant_storage:/qdrant/storage:z \
     qdrant/qdrant'
+You can also use the Docker console if you prefer.
 
 To check if it's running:
 navigate to localhost:6333/dashboard in a browser
 
-Data Processing:
-1. Ensure your notebook is using the virtual environment
-1. 'fetch_data.ipynb': Scrape the target websites and save as a local file
-1. 'chunk_and_load_data.ipynb': Chunk the data and add it to a vector database
+
+**Data Processing**
+In addition to calling the EldercareAPI
+
+**Running the App**
