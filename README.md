@@ -1,6 +1,5 @@
 # ai-care-companion
 
-
 **Prerequisites**
 
 This chatbot uses Anthropic LLMs, OpenAI embeddings, the [ElderCare API](https://eldercare.acl.gov/Public/Index.aspx), and (optionally) Langsmith tracing.
@@ -28,7 +27,8 @@ To start qdrant, in your terminal type:
 'docker run -p 6333:6333 -p 6334:6334 \
     -v $(pwd)/qdrant_storage:/qdrant/storage:z \
     qdrant/qdrant'
-You can also use the Docker console if you prefer.
+
+You can use the Docker console to start and stop the process if you've already populated the DB before.
 
 To check if it's running:
 navigate to localhost:6333/dashboard in a browser

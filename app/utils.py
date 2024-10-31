@@ -31,11 +31,13 @@ except Exception as e:
 def search_by_city_state(city: str, state: str):
     """Uses the Eldercare Data API to search for elder care close to a given city and two-letter state abbreviation"""
     result = ""
+    global client
     try:
         if not client:
             client = Client(wsdl=wsdl)
-        session_token = client.service.login(ELDERCARE_API_USERNAME, ELDERCARE_API_PASSWORD)
-        result = client.service.SearchByCityState(asCity=city, asState=state, asToken=session_token)
+        if client:
+            session_token = client.service.login(ELDERCARE_API_USERNAME, ELDERCARE_API_PASSWORD)
+            result = client.service.SearchByCityState(asCity=city, asState=state, asToken=session_token)
     except Exception as e:
         print(f"error in API call: {e}")
     return result
@@ -44,11 +46,13 @@ def search_by_city_state(city: str, state: str):
 def search_by_zip(zip_code: str):
     """Uses the Eldercare Data API to search for elder care close to a zip code"""
     result = ""
+    global client
     try: 
         if not client:
             client = Client(wsdl=wsdl)
-        session_token = client.service.login(ELDERCARE_API_USERNAME, ELDERCARE_API_PASSWORD)
-        result = client.service.SearchByZip(asZipCode=zip_code, asToken=session_token)
+        if client: 
+            session_token = client.service.login(ELDERCARE_API_USERNAME, ELDERCARE_API_PASSWORD)
+            result = client.service.SearchByZip(asZipCode=zip_code, asToken=session_token)
     except Exception as e:
         print(f"error in API call: {e}")
     return result
@@ -101,6 +105,7 @@ async def use_eldercare_api(messages,llm_with_tools):
         for tool_call in ai_msg.tool_calls:
             selected_tool = {"search_by_city_state": search_by_city_state, "search_by_zip": search_by_zip}[tool_call["name"].lower()]
             try:
+                print(f"selected_tool: {selected_tool}")
                 tool_output = await selected_tool.ainvoke(tool_call["args"])
                 tool_call_results += condense_tool_output(tool_output)
 
