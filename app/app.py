@@ -18,7 +18,7 @@ from langchain_core.prompts import MessagesPlaceholder
 from vars import SYSTEM_PROMPT, MAX_CONTEXT, GREETING
 from vars import COLLECTION_NAME_FIXED, COLLECTION_NAME_SEMANTIC, URL
 from vars import HAIKU, SONNET, TEMPERATURE, TOP_P, MAX_TOKENS, MAX_MEMORY
-from utils import add_sources, get_toolbelt, use_eldercare_api, check_facts
+from utils import add_sources, get_toolbelt, use_eldercare_api, check_facts, retry_stream
 
 # Environment vars
 load_dotenv('.env')
@@ -157,7 +157,7 @@ async def main(message: cl.Message):
 
     except Exception as e:
         print(f"Error in retrieval or tool use: {e}")
-        await cl.Message(content="I'm sorry, an error occurred processing your request").send()
+        #await cl.Message(content="I'm sorry, an error occurred processing your request").send()
 
     ai_response = ""
     fact_checker_passed = False
@@ -175,7 +175,7 @@ async def main(message: cl.Message):
 
             prompt_text = SYSTEM_PROMPT.format(**prompt_inputs)
 
-            async for chunk in llm.astream(prompt_text):
+            async for chunk in retry_stream(llm,prompt_text):
                 #print(chunk) #uncomment to debug streaming
                 ai_response+=chunk.content
                 await msg.stream_token(chunk.content)

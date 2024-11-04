@@ -1,4 +1,5 @@
 import os
+from typing import AsyncGenerator
 from dotenv import load_dotenv
 
 import chainlit as cl
@@ -115,6 +116,40 @@ async def use_eldercare_api(messages,llm_with_tools):
     print(f"{use_eldercare_api.__name__}: Tool call results: {tool_call_results}")
     return tool_call_results
 
+#### Functions to help fail gracefully if the API is under load ####
+
+async def retry_stream(llm, prompt: str) -> AsyncGenerator:
+    """Simple retry for streaming LLM calls"""
+    max_attempts = 3
+    delay = 1  # Start with 1 second delay
+    
+    for attempt in range(max_attempts):
+        try:
+            async for chunk in llm.astream(prompt):
+                yield chunk
+            return
+        except Exception as e:
+            if attempt == max_attempts - 1:  # Last attempt failed
+                raise  # Re-raise the last exception
+            print(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")
+            await asyncio.sleep(delay)
+            delay *= 2  # Double the delay for next attempt
+
+async def retry_invoke(llm, prompt: str):
+    """Simple retry for non-streaming LLM calls"""
+    max_attempts = 3
+    delay = 1  # Start with 1 second delay
+    
+    for attempt in range(max_attempts):
+        try:
+            return await llm.ainvoke(prompt)
+        except Exception as e:
+            if attempt == max_attempts - 1:  # Last attempt failed
+                raise  # Re-raise the last exception
+            print(f"Attempt {attempt + 1} failed, retrying in {delay} seconds...")
+            await asyncio.sleep(delay)
+            delay *= 2  # Double the delay for next attempt
+
 
 #### Other utilities ####
 
@@ -145,6 +180,8 @@ def add_sources(context: list[Document]) -> str:
 async def check_facts(formatted_context:str, tool_output:str, ai_response:str,
                       fact_checker_llm:BaseChatModel, memory:BaseChatMemory, fact_fixer_llm:BaseChatModel,
                       attempt:int=1, max_tries:int=3) -> bool:
+    # Check the factfulness of an LLM response by comparing it against its context. 
+    # If the response is not supported by the context, regenerate it.
     
     fact_checker_passed = False
     fact_checker_prompt_inputs = {
@@ -155,8 +192,12 @@ async def check_facts(formatted_context:str, tool_output:str, ai_response:str,
 
     # check whether the response is factual. "Y" indicates a problem, "N" indicates that the 
     # response is ok
+    fact_checkout_output = None
     fact_checker_prompt_text = FACT_CHECKER_PROMPT.format(**fact_checker_prompt_inputs)
-    fact_checker_output = await fact_checker_llm.ainvoke(fact_checker_prompt_text)
+    try:
+        fact_checker_output = await retry_invoke(fact_checker_llm, fact_checker_prompt_text)
+    except Exception as e:
+        print(f"Failed to generate fact checking response after multiple retries: {e}")
 
     if fact_checker_output:
         print(f"fact checker results: {fact_checker_output.content}")
@@ -180,15 +221,21 @@ async def check_facts(formatted_context:str, tool_output:str, ai_response:str,
                 }
                 fact_fixer_prompt_text = FACT_FIXER_PROMPT.format(**fact_fixer_prompt_inputs)
 
-                async for chunk in fact_fixer_llm.astream(fact_fixer_prompt_text):
-                    #print(chunk) #uncomment to debug streaming
-                    ai_response+=chunk.content
-                    await msg.stream_token(chunk.content)
+                try: 
+                    async for chunk in retry_stream(fact_fixer_llm, fact_fixer_prompt_text):
+                        #print(chunk) #uncomment to debug streaming
+                        ai_response+=chunk.content
+                        await msg.stream_token(chunk.content)
 
-                await msg.stream_token(sources)
-                await msg.send()
+                    await msg.stream_token(sources)
+                    await msg.send()
+                except Exception as e:
+                    print(f"Failed to fix fact checking response after multiple retries: {e}")
+
             else:
                 # If max_tries is reached, send a "give up" message to avoid an infinite loop
+                print(f"Failed to generate fixed response after retries: {e}")
+
                 ai_response = FACT_CHECKER_GIVE_UP_MESSAGE
                 await cl.Message(content=ai_response).send()
                 print(f"reached max attempts, generating give-up message")
