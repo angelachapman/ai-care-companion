@@ -1,6 +1,8 @@
 COLLECTION_NAME_FIXED = "DementiaCare_Fixed"
 COLLECTION_NAME_SEMANTIC = "DementiaCare_Semantic"
 
+PASSWORD_FILE = "auth.txt" # definitely change this later, this is not secure
+
 URL="http://localhost:6333"
 MAX_CONTEXT = 4
 

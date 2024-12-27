@@ -6,6 +6,7 @@ downloaded_document*.pdf
 .chainlit/translations
 .env
 .files
+auth.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,5 +1,6 @@
 import os
-from typing import cast
+import csv
+from datetime import datetime
 from dotenv import load_dotenv
 
 import chainlit as cl
@@ -15,7 +16,7 @@ from langchain.memory import ConversationBufferWindowMemory
 from langchain.chains import create_history_aware_retriever
 from langchain_core.prompts import MessagesPlaceholder
 
-from vars import SYSTEM_PROMPT, MAX_CONTEXT, GREETING
+from vars import SYSTEM_PROMPT, MAX_CONTEXT, GREETING, PASSWORD_FILE
 from vars import COLLECTION_NAME_FIXED, COLLECTION_NAME_SEMANTIC, URL
 from vars import HAIKU, SONNET, TEMPERATURE, TOP_P, MAX_TOKENS, MAX_MEMORY
 from utils import add_sources, get_toolbelt, use_eldercare_api, check_facts, retry_stream
@@ -120,6 +121,41 @@ async def start():
 
     msg = cl.Message(content=GREETING)
     await msg.send()
+
+
+@cl.password_auth_callback
+def auth_callback(username: str, password: str):
+
+    found_user = False
+    found_password = False
+
+    try:
+        with open(PASSWORD_FILE, mode="r") as csvfile:
+            reader = csv.DictReader(csvfile)
+
+            for row in reader:
+                if row["username"] == username:
+                    found_user = True
+                    if password == row["password"]:
+                        found_password = True 
+    except Exception as e:
+        print(f"authentication failed with error {e}")
+        raise
+    
+    # if the username is not found, create a new one
+    with open(PASSWORD_FILE, mode="a", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            created_at = datetime.now().isoformat()
+            writer.writerow([username, password, created_at])
+
+    # if the username and password are found in the db, proceed
+    if (found_user and found_password) or (not found_user):
+        return cl.User(
+            identifier=username, metadata={"role": "user", "provider": "credentials"}
+        )
+    else:
+        # otherwise fail 
+        return None
 
 @cl.author_rename
 def rename(orig_author: str):
